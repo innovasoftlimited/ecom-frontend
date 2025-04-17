@@ -1,9 +1,65 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { FaDribbble, FaFacebookF, FaLinkedin, FaPinterest, FaTwitter, FaYoutube } from 'react-icons/fa';
+import { useDispatch } from 'react-redux';
+import { useLocation, useNavigate } from 'react-router-dom';
+import useAxiosRequest from '../hooks/useAxiosRequest';
+import { loginSuccess } from '../redux/reducers/authSlice';
+import { toastError, toastSuccess } from '../utils/toast'; // Adjust the import path as needed
 
 const RegisterPage = () => {
+    const [formData, setFormData] = useState({
+        name: '',
+        email: '',
+        phone: '',
+        password: '',
+        password_confirmation: '',
+    });
+
+    const navigate = useNavigate();
+    const location = useLocation();
+    const dispatch = useDispatch();
+    const { execute, loading } = useAxiosRequest();
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData({ ...formData, [name]: value });
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        const { name, email, phone, password, password_confirmation } = formData;
+
+        if (!name || !email || !phone || !password || !password_confirmation) {
+            toastError('Please fill up all fields');
+            return;
+        }
+
+        if (password !== password_confirmation) {
+            toastError('Passwords do not match');
+            return;
+        }
+
+        try {
+            const response = await execute('Post', '/register', formData);
+            const { data, message } = response;
+            console.log(response);
+
+            toastSuccess(message || 'Registration successful! Redirecting...');
+            dispatch(loginSuccess({ token: data.token, user: data.user }, 48 * 3600)); // Set token to expire in 2 days
+
+            const redirectTo = location.state?.from || '/';
+            navigate(redirectTo, { replace: true });
+        } catch (error) {
+            console.error(error);
+            console.log(error);
+
+            toastError(`${error || 'Registration failed'}`);
+        }
+    };
+
     return (
-        <main className="mt-main">
+        <main className="mt-main mt-24">
             {/* Banner Section */}
             <section
                 className="mt-contact-banner bg-cover bg-center py-16"
@@ -67,41 +123,51 @@ const RegisterPage = () => {
                                     <p className="text-gray-500">Create a new account</p>
                                 </header>
 
-                                <form className="space-y-4">
+                                <form className="space-y-4" onSubmit={handleSubmit}>
                                     <fieldset className="space-y-4">
                                         <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
                                             <input
                                                 type="text"
-                                                placeholder="First Name"
+                                                name="name"
+                                                placeholder="Full Name"
+                                                value={formData.name}
+                                                onChange={handleChange}
                                                 className="w-full md:w-1/2 h-10 px-6 py-2 mb-3 bg-gray-200 text-gray-600 rounded-full border-0 outline-none focus:ring-0 font-light text-sm leading-5"
                                             />
                                             <input
                                                 type="text"
-                                                placeholder="Last Name"
+                                                name="phone"
+                                                placeholder="Phone Number"
+                                                value={formData.phone}
+                                                onChange={handleChange}
                                                 className="w-full md:w-1/2 h-10 px-6 py-2 mb-3 bg-gray-200 text-gray-600 rounded-full border-0 outline-none focus:ring-0 font-light text-sm leading-5"
                                             />
                                         </div>
                                         <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
-                                            <input
-                                                type="text"
-                                                placeholder="Username"
-                                                className="w-full md:w-1/2 h-10 px-6 py-2 mb-3 bg-gray-200 text-gray-600 rounded-full border-0 outline-none focus:ring-0 font-light text-sm leading-5"
-                                            />
                                             <input
                                                 type="email"
+                                                name="email"
                                                 placeholder="Email address"
+                                                value={formData.email}
+                                                onChange={handleChange}
+                                                className="w-full md:w-1/2 h-10 px-6 py-2 mb-3 bg-gray-200 text-gray-600 rounded-full border-0 outline-none focus:ring-0 font-light text-sm leading-5"
+                                            />
+                                            <input
+                                                type="password"
+                                                name="password"
+                                                placeholder="Password"
+                                                value={formData.password}
+                                                onChange={handleChange}
                                                 className="w-full md:w-1/2 h-10 px-6 py-2 mb-3 bg-gray-200 text-gray-600 rounded-full border-0 outline-none focus:ring-0 font-light text-sm leading-5"
                                             />
                                         </div>
                                         <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
                                             <input
                                                 type="password"
-                                                placeholder="Password"
-                                                className="w-full md:w-1/2 h-10 px-6 py-2 mb-3 bg-gray-200 text-gray-600 rounded-full border-0 outline-none focus:ring-0 font-light text-sm leading-5"
-                                            />
-                                            <input
-                                                type="password"
+                                                name="password_confirmation"
                                                 placeholder="Confirm Password"
+                                                value={formData.password_confirmation}
+                                                onChange={handleChange}
                                                 className="w-full md:w-1/2 h-10 px-6 py-2 mb-3 bg-gray-200 text-gray-600 rounded-full border-0 outline-none focus:ring-0 font-light text-sm leading-5"
                                             />
                                         </div>
@@ -124,7 +190,7 @@ const RegisterPage = () => {
                                                 type="submit"
                                                 className="bg-gray-500 text-white py-2 px-6 rounded-full border-0 outline-none font-light text-sm leading-5 hover:bg-gray-600 transition-colors"
                                             >
-                                                Register Me
+                                                {loading ? "Registering...." : "Register Me "}
                                             </button>
                                         </div>
                                         <header>

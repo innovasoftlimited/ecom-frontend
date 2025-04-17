@@ -305,7 +305,7 @@ const ShopPage = () => {
               {products.map((product) => (
                 view === "grid" ? (
                   <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 px-2 mb-4">
-                    <ProductCard key={product.id} name={product.name} image={product.image} price={product.price} />
+                    <ProductCard key={product.id} name={product.name} image={product.image} price={product.price} product={product} />
                   </div>
                 ) : (
                   <div className="pb-2 overflow-hidden border-b border-gray-200 after:content-[''] after:table after:clear-both">

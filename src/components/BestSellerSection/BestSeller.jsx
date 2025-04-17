@@ -1,30 +1,10 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick-theme.css";
 import "slick-carousel/slick/slick.css";
+import useAxiosRequest from "../../hooks/useAxiosRequest";
 import ProductCard from "../ProductTab/ProductCard";
 
-const products = [
-    {
-        id: 1,
-        name: "Bombi Chair",
-        price: "399,00",
-        image: "/images/img11.jpg",
-        badge: "Best Price",
-    },
-    {
-        id: 2,
-        name: "Marvelous Modern 3 Seater",
-        price: "599,00",
-        image: "/images/img12.jpg",
-    },
-    {
-        id: 3,
-        name: "Puff Armchair",
-        price: "200,00",
-        image: "/images/img13.jpg",
-    },
-];
 
 const NextArrow = (props) => {
     const { className, style, onClick } = props;
@@ -53,6 +33,21 @@ const PrevArrow = (props) => {
 };
 
 const BestSeller = () => {
+    const { execute } = useAxiosRequest();
+    const [products, setProducts] = useState([]);
+
+    useEffect(() => {
+        const fetchProducts = async () => {
+            try {
+                const response = await execute("GET", "/products");
+                setProducts(response.data || []);
+            } catch (error) {
+                console.error("Failed to fetch products:", error);
+            }
+        };
+
+        fetchProducts();
+    }, []);
     const settings = {
         dots: false,
         infinite: true,
@@ -101,7 +96,7 @@ const BestSeller = () => {
                 <div className="mt-8  md:px-0">
                     <Slider {...settings}>
                         {products.map((product) => (
-                            <ProductCard key={product.id} name={product.name} image={product.image} price={product.price} />
+                            <ProductCard key={product.id} id={product.id} name={product.name} image={product.thumb_image} price={product.unit_price} product={product} />
                         ))}
                     </Slider>
                 </div>

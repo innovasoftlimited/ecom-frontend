@@ -2,6 +2,7 @@ import React from "react";
 import { FaAngleRight } from "react-icons/fa"; // Import the icon from react-icons
 
 const ContactPage = () => {
+
     return (
         <>
             {/* Contact Banner */}

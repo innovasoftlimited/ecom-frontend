@@ -1,7 +1,49 @@
 import React from 'react';
 import { FaCheck } from 'react-icons/fa';
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import useAxiosRequest from '../../hooks/useAxiosRequest';
+import { removeProduct } from '../../redux/reducers/cartSlice';
+import { toastError, toastSuccess } from '../../utils/toast';
 
 const Checkout = () => {
+    const navigate = useNavigate();
+    const cartItems = useSelector((state) => state.cart.items);
+    const user = useSelector((state) => state.auth.user);
+    const { execute } = useAxiosRequest();
+    const dispatch = useDispatch();
+
+    const discount = 0; // Example: 0% discount
+    const shippingCost = cartItems.length > 0 ? 50 : 0; // Example: $50 shipping if cart is not empty
+
+    const subtotal = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
+    const discountAmount = subtotal * discount;
+    const total = subtotal - discountAmount + shippingCost;
+
+    const handleOrderSubmit = async () => {
+        const orderData = {
+            user_id: user?.id, // Replace with actual user ID
+            total_price: total,
+            status: 1, // Example: 1 for pending
+            order_details: cartItems.map((item) => ({
+                product_details_id: item.variantId,
+                quantity: item.quantity,
+                total_price: item.price * item.quantity,
+            })),
+        };
+
+        try {
+            const response = await execute('Post', '/orders', orderData);
+            console.log('Order submitted successfully:', response.data);
+            toastSuccess('Order submitted successfully!');
+            cartItems.map((item) => (dispatch(removeProduct(item?.id))))
+            navigate('/order-complete'); // Redirect to order complete page
+        } catch (error) {
+            console.error('Error submitting order:', error);
+            toastError(error || 'Failed to submit order. Please try again.');
+        }
+    };
+
     return (
         <div className="min-h-screen mt-24 ">
             {/* Hero Section */}
@@ -37,27 +79,11 @@ const Checkout = () => {
 
             {/* Cart Content */}
             <div className="container mx-auto px-4 pb-16">
-
-                {/* Cart Summary */}
-                <h2 className="text-xl  mb-6 font-montserrat">Billing Details</h2>
-
+                {/* Billing Details */}
+                <h2 className="text-xl mb-6 font-montserrat">Billing Details</h2>
                 <div className="grid md:grid-cols-2 gap-8 mt-8">
-                    {/* Shipping Calculator */}
-                    <div className=" p-6 ">
-                        {/* <div className="space-y-4">
-                            <select className="w-full p-3 border border-gray-300 rounded-md text-gray-400">
-                                <option>Select Country</option>
-                            </select>
-                            <select className="w-full p-3 border border-gray-300 rounded-md text-gray-400">
-                                <option>State / Country</option>
-                            </select>
-                            <select className="w-full p-3 border border-gray-300 rounded-md text-gray-400">
-                                <option>Zip / Postal Code</option>
-                            </select>
-                            <button className="w-full md:w-auto px-6 py-2 bg-gray-50 text-gray-300 font-montserrat uppercase font-semibold border border-gray-200  hover:bg-gray-700 transition-colors">
-                                Update Total
-                            </button>
-                        </div> */}
+                    {/* Billing Form */}
+                    <div className="p-6">
                         <form action="#" className="bill-detail">
                             <fieldset>
                                 <div className="form-group mb-4">
@@ -149,168 +175,159 @@ const Checkout = () => {
                     </div>
 
                     {/* Cart Totals */}
-                    <div className="  ">
-                        <div className='bg-gray-50 p-10'>
-                            <div className="holder">
-                                <h2 className="text-[18px] leading-[20px] uppercase font-normal mb-6 text-black font-montserrat">
-                                    YOUR ORDER
-                                </h2>
-                                <ul className="list-none block mb-6">
-                                    <li className="mb-3">
+                    <div className="bg-gray-50 p-10">
+                        <div className="holder">
+                            <h2 className="text-[18px] leading-[20px] uppercase font-normal mb-6 text-black font-montserrat">
+                                YOUR ORDER
+                            </h2>
+                            <ul className="list-none block mb-6">
+                                {cartItems.map((item) => (
+                                    <li key={item.id} className="mb-3">
                                         <div className="txt-holder flex justify-between">
                                             <div className="text-wrap pull-left">
-                                                <strong className="title block text-[16px] uppercase text-gray-600 mb-2">
-                                                    PRODUCTS
-                                                </strong>
-                                                <span className="block">
-                                                    Marvelous Modern 3 Seater x1
-                                                </span>
-                                                <span className="block">Bombi Chair x1</span>
+                                                <span className="block">{item.name} x{item.quantity}</span>
                                             </div>
                                             <div className="text-wrap txt text-right pull-right">
-                                                <strong className="title block text-[16px] uppercase text-gray-600 mb-2">
-                                                    TOTALS
-                                                </strong>
-                                                <span className="block">
-                                                    299,00
-                                                </span>
-                                                <span className="block">
-                                                    532,00
-                                                </span>
+                                                <span className="block">${(item.price * item.quantity).toFixed(2)}</span>
                                             </div>
                                         </div>
                                     </li>
-                                    <li className="mb-3 border-t border-gray-300 pt-2">
-                                        <div className="txt-holder flex justify-between">
-                                            <strong className="title sub-title text-[16px] uppercase text-gray-600 ">
-                                                CART SUBTOTAL
-                                            </strong>
-                                            <div className="txt">
-                                                <span className="block">
-                                                    532,00
-                                                </span>
-                                            </div>
+                                ))}
+                                <li className="mb-3 border-t border-gray-300 pt-2">
+                                    <div className="txt-holder flex justify-between">
+                                        <strong className="title sub-title text-[16px] uppercase text-gray-600">
+                                            CART SUBTOTAL
+                                        </strong>
+                                        <div className="txt">
+                                            <span className="block">${subtotal.toFixed(2)}</span>
                                         </div>
-                                    </li>
+                                    </div>
+                                </li>
+                                <li className="mb-3 border-t border-gray-300 pt-2">
+                                    <div className="txt-holder flex justify-between">
+                                        <strong className="title sub-title text-[16px] uppercase text-gray-600">
+                                            SHIPPING
+                                        </strong>
+                                        <div className="txt">
+                                            <span className="block">{shippingCost > 0 ? `$${shippingCost.toFixed(2)}` : 'Free Shipping'}</span>
+                                        </div>
+                                    </div>
+                                </li>
+                                {discount > 0 && (
                                     <li className="mb-3 border-t border-gray-300 pt-2">
                                         <div className="txt-holder flex justify-between">
                                             <strong className="title sub-title text-[16px] uppercase text-gray-600">
-                                                SHIPPING
+                                                DISCOUNT
                                             </strong>
                                             <div className="txt">
-                                                <span className="block">Free Shipping</span>
+                                                <span className="block">- ${discountAmount.toFixed(2)}</span>
                                             </div>
                                         </div>
                                     </li>
-                                    <li className="mb-6  border-t border-gray-300 pt-2" >
-                                        <div className="txt-holder flex justify-between">
-                                            <strong className="title sub-title text-[16px] uppercase text-gray-600">
-                                                ORDER TOTAL
-                                            </strong>
-                                            <div className="txt">
-                                                <span className="block">
-                                                    1299,00
+                                )}
+                                <li className="mb-6 border-t border-gray-300 pt-2">
+                                    <div className="txt-holder flex justify-between">
+                                        <strong className="title sub-title text-[16px] uppercase text-gray-600">
+                                            ORDER TOTAL
+                                        </strong>
+                                        <div className="txt">
+                                            <span className="block">${total.toFixed(2)}</span>
+                                        </div>
+                                    </div>
+                                </li>
+                            </ul>
+                            <h2 className="text-[18px] leading-[20px] pt-5 uppercase font-normal mb-6 text-black font-montserrat">
+                                PAYMENT METHODS
+                            </h2>
+                            <div className="panel-group" role="tablist" aria-multiselectable="true">
+                                {/* Panel 1 – Direct Bank Transfer */}
+                                <div className="panel panel-default border-t border-gray-300">
+                                    <div className="panel-heading py-3" role="tab" id="headingOne">
+                                        <h4 className="panel-title text-[16px] leading-[18px] uppercase font-bold text-gray-600">
+                                            <button
+                                                type="button"
+                                                className="w-full text-left flex justify-between items-center focus:outline-none"
+                                            >
+                                                DIRECT BANK TRANSFER
+                                                <span className="check ml-2">
+                                                    <input type="checkbox" className="text-[14px] leading-[16px] text-gray-700" />
                                                 </span>
-                                            </div>
-                                        </div>
-                                    </li>
-                                </ul>
-                                <h2 className="text-[18px] leading-[20px] pt-5 uppercase font-normal mb-6 text-black font-montserrat">
-                                    PAYMENT METHODS
-                                </h2>
-                                <div className="panel-group" role="tablist" aria-multiselectable="true">
-                                    {/* Panel 1 – Direct Bank Transfer */}
-                                    <div className="panel panel-default border-t border-gray-300">
-                                        <div className="panel-heading py-3" role="tab" id="headingOne">
-                                            <h4 className="panel-title text-[16px] leading-[18px] uppercase font-bold text-gray-600">
-                                                <button
-                                                    type="button"
-                                                    className="w-full text-left flex justify-between items-center focus:outline-none"
-                                                >
-                                                    DIRECT BANK TRANSFER
-                                                    <span className="check ml-2">
-                                                        <input type="checkbox" className="text-[14px] leading-[16px] text-gray-700" />
-                                                    </span>
-                                                </button>
-                                            </h4>
-                                        </div>
-                                        {(
-                                            <div
-
-                                            >
-                                                <div className="panel-body text-[12px] leading-[16px] font-light text-gray-600 py-2">
-                                                    <p>
-                                                        Make your payment directly into our bank account. Please use
-                                                        your order id as the payment reference. Your order won't be
-                                                        shipped until the funds have cleared in our account.
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        )}
+                                            </button>
+                                        </h4>
                                     </div>
-                                    {/* Panel 2 – Cheque Payment */}
-                                    <div className="panel panel-default border-t border-gray-300">
-                                        <div className="panel-heading py-3" role="tab" id="headingTwo">
-                                            <h4 className="panel-title text-[16px] leading-[18px] uppercase font-bold text-gray-600">
-                                                <button
-                                                    type="button"
-                                                    className="w-full text-left flex justify-between items-center focus:outline-none"
-                                                >
-                                                    CHEQUE PAYMENT
-                                                    <span className="check ml-2">
-                                                        <input type="checkbox" className="text-[14px] leading-[16px] text-gray-700" />
-                                                    </span>
-                                                </button>
-                                            </h4>
-                                        </div>
-                                        {(
-                                            <div
+                                    {(
+                                        <div
 
-                                            >
-                                                <div className="panel-body text-[12px] leading-[16px] font-light text-gray-600 py-2">
-                                                    <p>
-                                                        Make your payment directly into our bank account. Please use
-                                                        your order id as the payment reference. Your order won't be
-                                                        shipped until the funds have cleared in our account.
-                                                    </p>
-                                                </div>
+                                        >
+                                            <div className="panel-body text-[12px] leading-[16px] font-light text-gray-600 py-2">
+                                                <p>
+                                                    Make your payment directly into our bank account. Please use
+                                                    your order id as the payment reference. Your order won't be
+                                                    shipped until the funds have cleared in our account.
+                                                </p>
                                             </div>
-                                        )}
-                                    </div>
-                                    {/* Panel 3 – PayPal */}
-                                    <div className="panel panel-default border-t border-gray-300">
-                                        <div className="panel-heading py-3" role="tab" id="headingThree">
-                                            <h4 className="panel-title text-[16px] leading-[18px] uppercase font-bold text-gray-600">
-                                                <button
-                                                    type="button"
-                                                    className="w-full text-left flex justify-between items-center focus:outline-none"
-                                                >
-                                                    PAYPAL
-                                                    <span className="check ml-2">
-                                                        <input type="checkbox" className="text-[14px] leading-[16px] text-gray-700" />
-                                                    </span>
-                                                </button>
-                                            </h4>
                                         </div>
-                                        {(
-                                            <div
-
+                                    )}
+                                </div>
+                                {/* Panel 2 – Cheque Payment */}
+                                <div className="panel panel-default border-t border-gray-300">
+                                    <div className="panel-heading py-3" role="tab" id="headingTwo">
+                                        <h4 className="panel-title text-[16px] leading-[18px] uppercase font-bold text-gray-600">
+                                            <button
+                                                type="button"
+                                                className="w-full text-left flex justify-between items-center focus:outline-none"
                                             >
-                                                <div className="panel-body text-[12px] leading-[16px] font-light text-gray-600 py-2">
-                                                    <p>
-                                                        Make your payment directly into our bank account. Please use
-                                                        your order id as the payment reference. Your order won't be
-                                                        shipped until the funds have cleared in our account.
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        )}
+                                                CHEQUE PAYMENT
+                                                <span className="check ml-2">
+                                                    <input type="checkbox" className="text-[14px] leading-[16px] text-gray-700" />
+                                                </span>
+                                            </button>
+                                        </h4>
                                     </div>
+                                    {(
+                                        <div
+
+                                        >
+                                            <div className="panel-body text-[12px] leading-[16px] font-light text-gray-600 py-2">
+                                                <p>
+                                                    Make your payment directly into our bank account. Please use
+                                                    your order id as the payment reference. Your order won't be
+                                                    shipped until the funds have cleared in our account.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                                {/* Panel 3 – PayPal */}
+                                <div className="panel panel-default border-t border-gray-300">
+                                    <div className="panel-heading py-3" role="tab" id="headingThree">
+                                        <h4 className="panel-title text-[16px] leading-[18px] uppercase font-bold text-gray-600">
+                                            <button
+                                                type="button"
+                                                className="w-full text-left flex justify-between items-center focus:outline-none"
+                                            >
+                                                PAYPAL
+                                                <span className="check ml-2">
+                                                    <input type="checkbox" className="text-[14px] leading-[16px] text-gray-700" />
+                                                </span>
+                                            </button>
+                                        </h4>
+                                    </div>
+                                    {(
+                                        <div
+
+                                        >
+                                            <div className="panel-body text-[12px] leading-[16px] font-light text-gray-600 py-2">
+                                                <p>
+                                                    Make your payment directly into our bank account. Please use
+                                                    your order id as the payment reference. Your order won't be
+                                                    shipped until the funds have cleared in our account.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
-
-
-
                         </div>
                         <div className="flex justify-center mt-4">
                             <label className="inline-flex items-center">
@@ -321,9 +338,12 @@ const Checkout = () => {
                                 </a>
                             </label>
                         </div>
-                        <div className='flex justify-end'>
-                            <button className="w-fit mt-3 px-6 py-3 bg-green-400 text-white  hover:bg-green-700 transition-colors flex items-center justify-center uppercase font-montserrat font-semibold tracking-[3px]">
-                                Proceed to Checkout
+                        <div className="flex justify-end">
+                            <button
+                                onClick={handleOrderSubmit} // Attach the order submission handler
+                                className="w-fit mt-3 px-6 py-3 bg-green-400 text-white hover:bg-green-700 transition-colors flex items-center justify-center uppercase font-montserrat font-semibold tracking-[3px]"
+                            >
+                                Confirm Order
                                 <FaCheck className="ml-2" />
                             </button>
                         </div>

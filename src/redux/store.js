@@ -12,19 +12,21 @@ import {
 } from "redux-persist";
 import storage from "redux-persist/lib/storage"; // Uses localStorage
 import authReducer from "./reducers/authSlice";
+import cartReducer from "./reducers/cartSlice";
 import drawerReducer from "./reducers/drawerSlice";
 
 // Persist configuration for auth slice
 const persistConfig = {
     key: "root",
     storage,
-    whitelist: ["auth"], // Only persist auth
+    whitelist: ["auth", "cart"], // Only persist auth
 };
 
 // Combine reducers
 const rootReducer = combineReducers({
     auth: authReducer,
     drawer: drawerReducer,
+    cart: cartReducer, // Add cart reducer
 });
 
 // Wrap the root reducer with persistReducer

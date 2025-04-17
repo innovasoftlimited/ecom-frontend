@@ -1,23 +1,48 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
+import { Link } from 'react-router-dom';
+import useAxiosRequest from '../../hooks/useAxiosRequest';
 import { closeDrawer } from '../../redux/reducers/drawerSlice';
 
 const SearchDrawer = ({ isOpenDrawer }) => {
     const dispatch = useDispatch();
+    const { execute } = useAxiosRequest();
 
     const handleCloseDrawer = () => {
         dispatch(closeDrawer());
     };
+    const baseUrl = import.meta.env.VITE_REACT_APP_API_BASE_URL;
+
     const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedQuery, setDebouncedQuery] = useState('');
+    const [searchResults, setSearchResults] = useState([]);
 
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedQuery(searchQuery);
+        }, 300); // 300ms debounce delay
 
+        return () => {
+            clearTimeout(handler);
+        };
+    }, [searchQuery]);
 
-    // Dummy search results data
-    const searchResults = [
-        { id: 1, name: 'Tuma Kidsa bag', price: '', image: '/path-to-image.jpg' },
-        { id: 2, name: 'Tuma Grey', price: '', image: '/path-to-image.jpg' },
-        { id: 3, name: 'Tuma Style Cap', price: '$150.00', originalPrice: '$170.00', image: '/path-to-image.jpg' },
-    ];
+    useEffect(() => {
+        const fetchProducts = async () => {
+            try {
+                const response = await execute("GET", "/search-product", null, {
+                    name: debouncedQuery,
+                });
+                setSearchResults(response.data || []);
+            } catch (error) {
+                console.error("Failed to fetch products:", error);
+            }
+        };
+
+        if (debouncedQuery) {
+            fetchProducts();
+        }
+    }, [debouncedQuery]);
 
     return (
         <div>
@@ -55,30 +80,37 @@ const SearchDrawer = ({ isOpenDrawer }) => {
 
                     {/* Search results */}
                     <div className="max-h-[60vh] overflow-y-auto">
-                        {searchResults.map((item) => (
-                            <a
-                                key={item.id}
-                                href={`/products/${item.name.toLowerCase().replace(/ /g, '-')}`}
-                                className="flex items-center p-4 hover:bg-gray-50 transition-colors border-b last:border-b-0"
-                            >
-                                <img
-                                    src={item.image}
-                                    alt={item.name}
-                                    className="w-16 h-16 md:w-24 md:h-24 rounded-md object-cover mr-4"
-                                />
-                                <div className="flex-1">
-                                    <h3 className="font-medium text-gray-900 truncate">{item.name}</h3>
-                                    {item.price && (
-                                        <div className="text-sm text-gray-700">
-                                            <span className="font-semibold">{item.price}</span>
-                                            {item.originalPrice && (
-                                                <del className="ml-2 text-gray-400">{item.originalPrice}</del>
+                        {searchQuery?.length > 0 ? (
+                            searchResults?.length > 0 ? (
+                                searchResults.map((item) => (
+                                    <Link
+                                        key={item.id}
+                                        to={`/product/${item.id}`}
+                                        className="flex items-center p-4 hover:bg-gray-50 transition-colors border-b last:border-b-0"
+                                        onClick={() => handleCloseDrawer()}
+                                    >
+                                        <img
+                                            src={baseUrl + item.thumb_image}
+                                            alt={item.name}
+                                            className="w-16 h-16 md:w-24 md:h-24 rounded-md object-cover mr-4"
+                                        />
+                                        <div className="flex-1">
+                                            <h3 className="font-medium text-gray-900 truncate">{item.name}</h3>
+                                            {item.unit_price && (
+                                                <div className="text-sm text-gray-700">
+                                                    <span className="font-semibold">{item.unit_price} TK</span>
+                                                    {item.originalPrice && (
+                                                        <del className="ml-2 text-gray-400">{item.originalPrice}</del>
+                                                    )}
+                                                </div>
                                             )}
                                         </div>
-                                    )}
-                                </div>
-                            </a>
-                        ))}
+                                    </Link>
+                                ))
+                            ) : (
+                                <div className="p-4 text-center text-gray-500">No items found</div>
+                            )
+                        ) : null}
                     </div>
                 </div>
             </div>

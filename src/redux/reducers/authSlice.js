@@ -22,14 +22,15 @@ const authSlice = createSlice({
             state.error = null;
         },
         // Called on successful login
-        loginSuccess(state, action, expiresIn) {
+        loginSuccess(state, action) {
+            const { token, user } = action.payload;
+            const expiresIn = action.meta || 3600; // Default to 1 hour if not provided
             state.loading = false;
-            state.token = action.payload.token;
-            state.user = action.payload.user;
+            state.token = token;
+            state.user = user;
             state.isAuthenticated = true;
             state.error = null;
-            state.expiresAt = Date.now() + expiresIn * 1000; // Store expiry time (current time + expiresIn)
-
+            state.expiresAt = Date.now() + expiresIn * 1000; // Store expiry time
         },
         // Called if login fails
         loginFailure(state, action) {

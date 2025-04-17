@@ -1,22 +1,25 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import useAxiosRequest from "../../hooks/useAxiosRequest";
 import ProductCard from "./ProductCard";
 
 const ProductTabs = () => {
     const tabs = ["Featured", "New Arrivals", "Best Sellers"];
-    const products = [
-        { id: 1, name: "Bombi Chair", image: "/images/img01.jpg", price: "200,00" },
-        { id: 2, name: "Product 2", image: "/images/img02.jpg", price: "150,00" },
-        { id: 3, name: "Product 3", image: "/images/img03.jpg", price: "100,00" },
-        { id: 4, name: "Product 4", image: "/images/img04.jpg", price: "250,00" },
-        { id: 5, name: "Product 5", image: "/images/img05.jpg", price: "300,00" },
-        { id: 6, name: "Product 6", image: "/images/img06.jpg", price: "200,00" },
-        { id: 7, name: "Product 7", image: "/images/img07.jpg", price: "150,00" },
-        { id: 8, name: "Product 8", image: "/images/img08.jpg", price: "100,00" },
-        { id: 9, name: "Product 9", image: "/images/img09.jpg", price: "250,00" },
-        { id: 10, name: "Product 10", image: "/images/img10.jpg", price: "300,00" },
-    ];
-
+    const { execute, loading } = useAxiosRequest();
+    const [products, setProducts] = useState([]);
     const [activeTab, setActiveTab] = useState(0);
+
+    useEffect(() => {
+        const fetchProducts = async () => {
+            try {
+                const response = await execute("GET", "/products");
+                setProducts(response.data || []);
+            } catch (error) {
+                console.error("Failed to fetch products:", error);
+            }
+        };
+
+        fetchProducts();
+    }, []);
 
     return (
         <div className="w-full px-4 md:px-16 bg-white pt-8">
@@ -39,9 +42,13 @@ const ProductTabs = () => {
             {/* Product Grid */}
             <div className="relative mt-6 px-4 md:px-8">
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                    {products.map((product) => (
-                        <ProductCard key={product.id} name={product.name} image={product.image} price={product.price} />
-                    ))}
+                    {loading ? (
+                        <p>Loading products...</p>
+                    ) : (
+                        products.map((product) => (
+                            <ProductCard key={product.id} id={product.id} name={product.name} image={product.thumb_image} price={product.unit_price} product={product} />
+                        ))
+                    )}
                 </div>
 
                 {/* Navigation Buttons */}
